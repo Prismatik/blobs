@@ -30,6 +30,7 @@ var server = http.createServer((req, res) => {
       });
     });
     Promise.all(tasks).then((urls) => {
+      res.setHeader("Content-Type", "application/json");
       res.end(JSON.stringify(urls));
     });
   });
