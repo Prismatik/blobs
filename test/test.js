@@ -114,6 +114,14 @@ test('POST /file when authRequired and valid jwt auth given should return 200', 
   return request.post({url: url, auth: auth, formData: formData})
 });
 
+test('POST /file when authRequired and valid jwt auth given via querystring should return 200', (t) => {
+  var formData = {
+    file: fs.createReadStream(__dirname + '/testfile1'),
+  };
+  const token = jwt.sign({foo: 'bar'}, process.env.JWT_SECRET);
+  return request.post({url: url+'?jwt='+token, formData: formData})
+});
+
 test('end', t => {
   server.close(() => {
     t.end();

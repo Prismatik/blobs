@@ -11,6 +11,7 @@ var aws = require('aws-sdk');
 var formidable = require('formidable');
 var fs = require('fs');
 var auth = require('./lib/auth');
+var url = require('url');
 
 var s3Client = new aws.S3({
   accessKeyId: process.env.S3_KEY,
@@ -31,9 +32,11 @@ var uploadFile = (file) => {
 };
 
 var server = http.createServer((req, res) => {
-  if (req.url !== '/file') return;
+  const parsedUrl = url.parse(req.url);
 
-  auth(req)
+  if (parsedUrl.pathname !== '/file') return;
+
+  auth(req.headers, parsedUrl.query)
   .then(() => {
     return new Promise((resolve, reject) => {
       var form = new formidable.IncomingForm();
