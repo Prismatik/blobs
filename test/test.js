@@ -2,8 +2,10 @@ var test = require('blue-tape');
 var tapSpec = require('tap-spec');
 var request = require('request-promise');
 var fs = require('fs');
+var jwt = require('jsonwebtoken');
 
 process.env.PASS_eric = '$2a$10$HA4xm8ZPmNB9UyUiD/bwOu8xW2oGG/g0t8XlHhQFfmkNPA4fBofkW';
+process.env.JWT_SECRET = 'ohai';
 
 var server = require('../index.js');
 
@@ -73,14 +75,14 @@ test('POST /file when authRequired and no auth given should return 403', (t) => 
   });
 });
 
-test('POST /file when authRequired and invalid auth given should return 403', (t) => {
+test('POST /file when authRequired and invalid basic auth given should return 403', (t) => {
   var formData = {
     file: fs.createReadStream(__dirname + '/testfile1'),
   };
   var auth = {
-      user: 'foo',
-      pass: 'bar'
-    }
+    user: 'foo',
+    pass: 'bar'
+  };
   return request.post({url: url, auth: auth, formData: formData})
   .then(t.fail)
   .catch(err => {
@@ -88,14 +90,27 @@ test('POST /file when authRequired and invalid auth given should return 403', (t
   });
 });
 
-test('POST /file when authRequired and valid auth given should return 200', (t) => {
+test('POST /file when authRequired and invalid jwt auth given should return 403', (t) => {
   var formData = {
     file: fs.createReadStream(__dirname + '/testfile1'),
   };
-  var auth = {
-      user: 'eric',
-      pass: 'foo'
-    }
+  const auth = {
+    bearer: 'hai'
+  }
+  return request.post({url: url, auth: auth, formData: formData})
+  .then(t.fail)
+  .catch(err => {
+    t.equal(err.statusCode, 403, 'statusCode should be 403');
+  });
+});
+
+test('POST /file when authRequired and valid jwt auth given should return 200', (t) => {
+  var formData = {
+    file: fs.createReadStream(__dirname + '/testfile1'),
+  };
+  const auth = {
+    bearer: jwt.sign({foo: 'bar'}, process.env.JWT_SECRET)
+  }
   return request.post({url: url, auth: auth, formData: formData})
 });
 
