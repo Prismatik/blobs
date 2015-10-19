@@ -2,7 +2,14 @@ var test = require('blue-tape');
 var tapSpec = require('tap-spec');
 var request = require('request-promise');
 var fs = require('fs');
+var url = require('url');
 var jwt = require('jsonwebtoken');
+var aws = require('aws-sdk');
+
+var s3Client = new aws.S3({
+  accessKeyId: process.env.S3_KEY,
+  secretAccessKey: process.env.S3_SECRET,
+});
 
 process.env.PASS_eric = '$2a$10$HA4xm8ZPmNB9UyUiD/bwOu8xW2oGG/g0t8XlHhQFfmkNPA4fBofkW';
 process.env.JWT_SECRET = 'ohai';
@@ -10,7 +17,17 @@ process.env.REQUIRE_AUTH=false;
 
 var server = require('../index.js');
 
-var url = 'http://localhost:3000/file';
+var serverUrl = 'http://localhost:3000/file';
+
+var uploadedFiles = [];
+
+var pushFiles = files => {
+  parsed = JSON.parse(files);
+  parsed.forEach( file => {
+    uploadedFiles.push(url.parse(file).pathname.substring(1))
+  });
+  return files;
+};
 
 test.createStream()
   .pipe(tapSpec())
@@ -20,21 +37,24 @@ test('POST /file with a single file should return 200', () => {
   var formData = {
     file: fs.createReadStream(__dirname + '/testfile1')
   };
-  return request.post({url: url, formData: formData});
+  return request.post({url: serverUrl, formData: formData})
+  .then(pushFiles);
 });
 
 test('POST /file with multiple files should return 200', () => {
   var formData = {
     files: [fs.createReadStream(__dirname + '/testfile1'), fs.createReadStream(__dirname + '/testfile2')]
   };
-  return request.post({url: url, formData: formData});
+  return request.post({url: serverUrl, formData: formData})
+  .then(pushFiles);
 });
 
 test('POST /file with a single file should end up with the file at the URL', (t) => {
   var formData = {
     file: fs.createReadStream(__dirname + '/testfile1')
   };
-  return request.post({url: url, formData: formData})
+  return request.post({url: serverUrl, formData: formData})
+  .then(pushFiles)
   .then((urls) => {
     urls = JSON.parse(urls);
     return request.get(urls[0])
@@ -48,7 +68,8 @@ test('POST /file with a multiple files should end up with the files at the URLs'
   var formData = {
     files: [fs.createReadStream(__dirname + '/testfile1'), fs.createReadStream(__dirname + '/testfile2')]
   };
-  return request.post({url: url, formData: formData})
+  return request.post({url: serverUrl, formData: formData})
+  .then(pushFiles)
   .then((urls) => {
     urls = JSON.parse(urls);
     var tasks = urls.map((url) => {
@@ -69,7 +90,7 @@ test('POST /file when authRequired and no auth given should return 403', (t) => 
   var formData = {
     file: fs.createReadStream(__dirname + '/testfile1')
   };
-  return request.post({url: url, formData: formData})
+  return request.post({url: serverUrl, formData: formData})
   .then(t.fail)
   .catch(err => {
     t.equal(err.statusCode, 403, 'statusCode should be 403');
@@ -84,7 +105,7 @@ test('POST /file when authRequired and invalid basic auth given should return 40
     user: 'foo',
     pass: 'bar'
   };
-  return request.post({url: url, auth: auth, formData: formData})
+  return request.post({url: serverUrl, auth: auth, formData: formData})
   .then(t.fail)
   .catch(err => {
     t.equal(err.statusCode, 403, 'statusCode should be 403');
@@ -98,7 +119,7 @@ test('POST /file when authRequired and invalid jwt auth given should return 403'
   const auth = {
     bearer: 'hai'
   }
-  return request.post({url: url, auth: auth, formData: formData})
+  return request.post({url: serverUrl, auth: auth, formData: formData})
   .then(t.fail)
   .catch(err => {
     t.equal(err.statusCode, 403, 'statusCode should be 403');
@@ -112,7 +133,8 @@ test('POST /file when authRequired and valid jwt auth given should return 200', 
   const auth = {
     bearer: jwt.sign({foo: 'bar'}, process.env.JWT_SECRET)
   }
-  return request.post({url: url, auth: auth, formData: formData})
+  return request.post({url: serverUrl, auth: auth, formData: formData})
+  .then(pushFiles)
 });
 
 test('POST /file when authRequired and valid jwt auth given via querystring should return 200', (t) => {
@@ -120,11 +142,24 @@ test('POST /file when authRequired and valid jwt auth given via querystring shou
     file: fs.createReadStream(__dirname + '/testfile1'),
   };
   const token = jwt.sign({foo: 'bar'}, process.env.JWT_SECRET);
-  return request.post({url: url+'?jwt='+token, formData: formData})
+  return request.post({url: serverUrl+'?jwt='+token, formData: formData})
+  .then(pushFiles)
 });
 
 test('end', t => {
   server.close(() => {
+    t.end();
+  });
+});
+
+test('cleanup', t => {
+  s3Client.deleteObjects({
+    Bucket: process.env.S3_BUCKET,
+    Delete: {
+      Objects: uploadedFiles.map( file => { return {Key: file} })
+    }
+  }, (err, data) => {
+    if (err) return t.fail(err);
     t.end();
   });
 });
