@@ -81,6 +81,41 @@ test('POST /file with a multiple files should end up with the files at the URLs'
   });
 });
 
+test('POSTing the same file twice should result in different uploads/URLs if immutable is true', (t) => {
+  var formData = {
+    file: fs.createReadStream(__dirname + '/testfile1')
+  };
+  var postFile = () => {
+    return request.post({url: serverUrl, formData: formData})
+    .then(pushFiles);
+  };
+
+  return Promise.all([postFile(), postFile()])
+  .then((urls) => {
+    urls = urls.map(JSON.parse);
+    return t.notEqual(urls[0][0], urls[1][0], 'URLs must not be the same');
+  });
+});
+
+test('POSTing the same file twice should result in the same uploads/URLs if immutable is false', (t) => {
+  process.env.IMMUTABLE = false;
+  var formData = {
+    file: fs.createReadStream(__dirname + '/testfile1')
+  };
+  var postFile = () => {
+    return request.post({url: serverUrl, formData: formData})
+    .then(pushFiles);
+  };
+
+  return Promise.all([postFile(), postFile()])
+  .then((urls) => {
+    urls = urls.map(JSON.parse);
+    return t.equal(urls[0][0], urls[1][0], 'URLs must be the same');
+  }).then(() => {
+    process.env.IMMUTABLE = true;
+  });
+});
+
 test('set REQUIRE_AUTH', (t) => {
   process.env.REQUIRE_AUTH = true;
   t.end();

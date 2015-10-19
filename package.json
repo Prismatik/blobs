@@ -19,6 +19,7 @@
     "formidable": "^1.0.17",
     "jsonwebtoken": "^5.4.0",
     "miniauth": "^2.0.0",
+    "node-uuid": "^1.4.3",
     "required_env": "^1.0.0"
   }
 }

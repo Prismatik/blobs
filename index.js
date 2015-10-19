@@ -3,7 +3,8 @@ require('required_env')([
   'S3_BUCKET',
   'S3_KEY',
   'S3_SECRET',
-  {var: 'REQUIRE_AUTH', default: true}
+  {var: 'REQUIRE_AUTH', default: true},
+  {var: 'IMMUTABLE', default: true}
 ]);
 
 var http = require('http');
@@ -12,17 +13,24 @@ var formidable = require('formidable');
 var fs = require('fs');
 var auth = require('./lib/auth');
 var url = require('url');
+var uuid = require('node-uuid');
 
 var s3Client = new aws.S3({
   accessKeyId: process.env.S3_KEY,
   secretAccessKey: process.env.S3_SECRET,
 });
 
+const calcUploadKey = (name) => {
+  if (process.env.IMMUTABLE === 'false') return name;
+  if (process.env.IMMUTABLE === 'true') return uuid.v4() + '/' + name;
+  throw new Error('Immutable is in a bad state: '+process.env.IMMUTABLE);
+};
+
 var uploadFile = (file) => {
   return new Promise((resolve, reject) => {
     s3Client.upload({
       Bucket: process.env.S3_BUCKET,
-      Key: file.name,
+      Key: calcUploadKey(file.name),
       Body: fs.createReadStream(file.path)
     }, (err, data) => {
       if (err) return reject(err);
