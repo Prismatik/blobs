@@ -6,6 +6,7 @@ var jwt = require('jsonwebtoken');
 
 process.env.PASS_eric = '$2a$10$HA4xm8ZPmNB9UyUiD/bwOu8xW2oGG/g0t8XlHhQFfmkNPA4fBofkW';
 process.env.JWT_SECRET = 'ohai';
+process.env.REQUIRE_AUTH=false;
 
 var server = require('../index.js');
 
