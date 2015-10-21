@@ -45,6 +45,7 @@ var server = http.createServer((req, res) => {
   if (parsedUrl.pathname !== '/file') return;
 
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization');
 
   if (req.method === 'OPTIONS') return res.end();
 
