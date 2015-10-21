@@ -4,7 +4,8 @@ require('required_env')([
   'S3_KEY',
   'S3_SECRET',
   {var: 'REQUIRE_AUTH', default: true},
-  {var: 'IMMUTABLE', default: true}
+  {var: 'IMMUTABLE', default: true},
+  {var: 'CORS_DOMAIN', default: '*'}
 ]);
 
 var http = require('http');
@@ -44,8 +45,10 @@ var server = http.createServer((req, res) => {
 
   if (parsedUrl.pathname !== '/file') return;
 
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'accept, authorization, content-type');
+  if (process.env.CORS_DOMAIN !== 'false') {
+    res.setHeader('Access-Control-Allow-Origin', process.env.CORS_DOMAIN);
+    res.setHeader('Access-Control-Allow-Headers', 'accept, authorization, content-type');
+  };
 
   if (req.method === 'OPTIONS') return res.end();
 

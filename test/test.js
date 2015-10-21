@@ -181,6 +181,11 @@ test('POST /file when authRequired and valid jwt auth given via querystring shou
   .then(pushFiles)
 });
 
+test('unset REQUIRE_AUTH', (t) => {
+  delete process.env.REQUIRE_AUTH;
+  t.end();
+});
+
 test('OPTIONS /file should return a response with "Access-Control-Allow-Origin" present', (t) => {
   return request({method: 'OPTIONS', url: serverUrl, resolveWithFullResponse: true}).then( (res) => {
     t.ok(res.headers['access-control-allow-origin']);
@@ -191,6 +196,31 @@ test('OPTIONS /file should return a response with "Access-Control-Allow-Headers"
   return request({method: 'OPTIONS', url: serverUrl, resolveWithFullResponse: true}).then( (res) => {
     t.equal(res.headers['access-control-allow-headers'], 'accept, authorization, content-type', 'Allow for all relevant headers is present');
   });
+});
+
+test('OPTIONS /file when CORS_DOMAIN is false should not return CORS headers', (t) => {
+  process.env.CORS_DOMAIN = false;
+
+  return request({method: 'OPTIONS', url: serverUrl, resolveWithFullResponse: true}).then( (res) => {
+    t.notOk(res.headers['access-control-allow-origin'], 'access-control-allow-origin must not be present');
+    t.notOk(res.headers['access-control-allow-headers'], 'access-control-allow-headers must not be present');
+  });
+
+  process.env.CORS_DOMAIN = '*';
+});
+
+test('POST /file when CORS_DOMAIN is false should not return CORS headers', (t) => {
+  process.env.CORS_DOMAIN = false;
+
+  var formData = {
+    file: fs.createReadStream(__dirname + '/testfile1'),
+  };
+  return request.post({url: serverUrl, formData: formData, resolveWithFullResponse: true}).then( (res) => {
+    t.notOk(res.headers['access-control-allow-origin'], 'access-control-allow-origin must not be present');
+    t.notOk(res.headers['access-control-allow-headers'], 'access-control-allow-headers must not be present');
+  });
+
+  process.env.CORS_DOMAIN = '*';
 });
 
 test('end', t => {
