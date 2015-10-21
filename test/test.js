@@ -181,6 +181,12 @@ test('POST /file when authRequired and valid jwt auth given via querystring shou
   .then(pushFiles)
 });
 
+test('OPTIONS /file should return a response with "Access-Control-Allow-Origin" present', (t) => {
+  return request({method: 'OPTIONS', url: serverUrl, resolveWithFullResponse: true}).then( (res) => {
+    t.ok(res.headers['access-control-allow-origin']);
+  });
+});
+
 test('end', t => {
   server.close(() => {
     t.end();
