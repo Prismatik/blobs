@@ -187,9 +187,9 @@ test('OPTIONS /file should return a response with "Access-Control-Allow-Origin" 
   });
 });
 
-test('OPTIONS /file should return a response with "Access-Control-Allow-Headers" set to "Authorization"', (t) => {
+test('OPTIONS /file should return a response with "Access-Control-Allow-Headers" set to "accept, authorization, content-type"', (t) => {
   return request({method: 'OPTIONS', url: serverUrl, resolveWithFullResponse: true}).then( (res) => {
-    t.equal(res.headers['access-control-allow-headers'], 'Authorization', 'Allow Auth header is present');
+    t.equal(res.headers['access-control-allow-headers'], 'accept, authorization, content-type', 'Allow for all relevant headers is present');
   });
 });
 
