@@ -43,7 +43,10 @@ var uploadFile = (file) => {
 var server = http.createServer((req, res) => {
   const parsedUrl = url.parse(req.url);
 
-  if (parsedUrl.pathname !== '/file') return;
+  if (parsedUrl.pathname !== '/file') {
+    res.statusCode = 404;
+    return res.end();
+  };
 
   if (process.env.CORS_DOMAIN !== 'false') {
     res.setHeader('Access-Control-Allow-Origin', process.env.CORS_DOMAIN);
@@ -51,6 +54,10 @@ var server = http.createServer((req, res) => {
   };
 
   if (req.method === 'OPTIONS') return res.end();
+  if (req.method !== 'POST') {
+    res.statusCode = 405;
+    res.end();
+  }
 
   auth(req.headers, parsedUrl.query)
   .then(() => {

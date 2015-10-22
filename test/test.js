@@ -223,6 +223,32 @@ test('POST /file when CORS_DOMAIN is false should not return CORS headers', (t) 
   process.env.CORS_DOMAIN = '*';
 });
 
+test('GET /file should return 405', (t) => {
+  return request.get({url: serverUrl, resolveWithFullResponse: true})
+  .then(t.fail)
+  .catch( (err) => {
+    t.equal(err.statusCode, 405, 'statusCode should be 405');
+  });
+});
+
+test('GET / should return 404', (t) => {
+  var rootUrl = JSON.parse(JSON.stringify(serverUrl)).replace(url.parse(serverUrl).path, '/');
+  return request.get({url: rootUrl, resolveWithFullResponse: true})
+  .then(t.fail)
+  .catch( (err) => {
+    t.equal(err.statusCode, 404, 'statusCode should be 404');
+  });
+});
+
+test('GET /foobarlalala should return 404', (t) => {
+  var rootUrl = JSON.parse(JSON.stringify(serverUrl)).replace(url.parse(serverUrl).path, '/');
+  return request.get({url: rootUrl, resolveWithFullResponse: true})
+  .then(t.fail)
+  .catch( (err) => {
+    t.equal(err.statusCode, 404, 'statusCode should be 404');
+  });
+});
+
 test('end', t => {
   server.close(() => {
     t.end();
