@@ -64,7 +64,7 @@ var server = http.createServer((req, res) => {
       form.parse(req);
     });
   }).then((urls) => {
-    res.setHeader("Content-Type", "application/json");
+    res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify(urls));
   }).catch((err) => {
     err.message === '403' ? res.statusCode = 403 : res.statusCode = 500;
