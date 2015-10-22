@@ -40,6 +40,18 @@ var uploadFile = (file) => {
   });
 };
 
+var deleteFile = (file) => {
+  return new Promise((resolve, reject) => {
+    fs.unlink(file.path, (err) => {
+      if (err) {
+        console.error('error deleting file!', err, file.path);
+        // We don't reject since that would halt the execution of the Promise.all wrapping this. Just because one file fails to delete doesn't mean we shouldn't keep trying the rest of them.
+      };
+      resolve();
+    });
+  });
+};
+
 var server = http.createServer((req, res) => {
   const parsedUrl = url.parse(req.url);
 
@@ -59,12 +71,15 @@ var server = http.createServer((req, res) => {
     res.end();
   }
 
+  var openedFiles = null;
+
   auth(req.headers, parsedUrl.query)
   .then(() => {
     return new Promise((resolve, reject) => {
       var form = new formidable.IncomingForm();
 
       form.on('end', function(fields, files) {
+        openedFiles = this.openedFiles;
         return resolve(Promise.all(this.openedFiles.map(uploadFile)));
       });
 
@@ -76,6 +91,8 @@ var server = http.createServer((req, res) => {
   }).catch((err) => {
     err.message === '403' ? res.statusCode = 403 : res.statusCode = 500;
     res.end();
+  }).then(() => {
+    return Promise.all(openedFiles.map(deleteFile));
   });
 });
 
